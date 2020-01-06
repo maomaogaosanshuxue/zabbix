@@ -1,0 +1,10 @@
+宏:
+macros  分类： 1.系统宏变量 2.用户定义宏变量 3.自动发现宏变量
+
+语法 1.{MACRO}   2.{$MACRO} {#MACRO}
+
+宏变量函数 1.regsub(<pattern>,<output>) 2. iregscub(<pattern>,<output>)
+
+宏的优先级 主机宏>模块宏>全局宏
+
+https://www.cnblogs.com/skyflask/p/7523535.html
