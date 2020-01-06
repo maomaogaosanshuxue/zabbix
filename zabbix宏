@@ -8,3 +8,13 @@ macros  分类： 1.系统宏变量 2.用户定义宏变量 3.自动发现宏变
 宏的优先级 主机宏>模块宏>全局宏
 
 https://www.cnblogs.com/skyflask/p/7523535.html
+
+
+系统定义
+告警主机:{HOSTNAME1}
+告警时间:{EVENT.DATE} {EVENT.TIME}
+告警等级:{TRIGGER.KEY1}
+告警项目:{ITEM.NAME}:{ITEM.VALUE1}
+问题详情:{TRIGGER.STATUS}:{ITEM.VALUE1}
+当前状态:{TRIGGER.STATUS}:{ITEM.VALUE1}
+事件:{EVENT.ID}
