@@ -1,0 +1,21 @@
+启动
+：zabbix-agent 
+查看zabbix-agent 配置文件
+[root@k8s-node1 nginx]# cat /etc/zabbix/zabbix_agentd.conf |grep -v ^#|grep -v ^$
+PidFile=/var/run/zabbix/zabbix_agentd.pid
+LogFile=/var/log/zabbix/zabbix_agentd.log
+LogFileSize=0
+Server=192.168.200.140
+ServerActive=192.168.200.140
+Hostname=192.168.200.133
+ AllowRoot=1
+Include=/etc/zabbix/zabbix_agentd.d/*.conf
+    12 缺人完包含zabbix配置文件中 进入14
+
+------------cd /etc/zabbix/zabbix_agentd.d/
+[root@k8s-node1 zabbix_agentd.d]# ls
+  userparameter_mysql.conf
+  [root@k8s-node1 zabbix_agentd.d]#touch userparameter_listen_port.conf
+[root@k8s-node1 zabbix_agentd.d]# cat userparameter_listen_port.conf  //在里面添加如下
+UserParameter=listen.ports, python /tmp/listen_posts.py
+
