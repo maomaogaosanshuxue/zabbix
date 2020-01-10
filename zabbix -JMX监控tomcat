@@ -1,0 +1,133 @@
+1.zabbix-server端                          
+再修改zabbix-server的配置，编辑/etc/zabbix/zabbix_server.conf ，修改下面几个参数：
+JavaGateway=127.0.0.1 本地启动ip JavaGateway的服务器IP地址
+JavaGatewayPort=10052 JavaGateway的服务端口
+StartJavaPollers=5 //  javaGateway采集数据的进程数 根据自己需求定
+
+安装zabbix-java-gateway
+yum install zabbix-java-gateway
+打开配置文件修改参数zabbix-java-gateway.conf
+LISTEN_IP="0.0.0.0" # 监听地址
+LISTEN_PORT=10052#  # 监听端口
+PID_FILE=”/var/run/zabbix/zabbix_java.pid” # PID_FILE文件
+START_POLLERS=5  # 开启的工作线程数
+
+JAVA_OPTIONS="$JAVA_OPTIONS -Dcom.sun.management.jmxremote -Dcom.sun.management.jmxremote.port=12345
+        -Dcom.sun.management.jmxremote.authenticate=false -Dcom.sun.management.jmxremote.ssl=false"
+				
+
+启动 systemctl start zabbix-java-gateway
+
+查看日志 是否监听10052端口 
+root@k8s-node1 xy]# tail -n 200 /var/log/zabbix/zabbix_java_gateway.log
+2020-01-08 17:32:49.447 [main] INFO  com.zabbix.gateway.JavaGateway - Zabbix Java Gateway 4.0.16 (revision 9377bec666) has started
+2020-01-08 17:32:49.464 [main] INFO  com.zabbix.gateway.JavaGateway - listening on /0.0.0.0:10052
+
+.ps aux |grep java 启动5个 //查看进程
+ss -antup |grep java  //查看是否监听10052 12345 端口
+root@localhost xy]# ss -antup |grep java
+tcp    LISTEN     0      50       :::39409                :::*                   users:(("java",pid=13623,fd=21))
+tcp    LISTEN     0      50       :::12345                :::*                   users:(("java",pid=13623,fd=18))
+tcp    LISTEN     0      50       :::33633                :::*                   users:(("java",pid=13623,fd=17))
+tcp    LISTEN     0      50       :::10052                :::*                   users:(("java",pid=13623,fd=23
+----------------------开启JMX-----------------------------------
+---------------------使用JMX前需要先开启JMX，默认是关闭的，在启动JAVA程序时，加入下面的参数，就可以开启JMX：--------------------
+---------------------添加java摸版-----------------------
+
+2.agent 端JMX 监控tomcat
+
+yum serach java //搜索java的包
+安装 
+yum install java-1.8.0-openjdk  java-1.8.0-openjdk-devel
+
+查询配置文件
+
+[root@k8s-node1 xy]# rpm -ql java-1.8.0-openjdk
+/usr/lib/jvm/java-1.8.0-openjdk-1.8.0.232.b09-0.el7_7.x86_64/jre/bin/policytool
+/usr/lib/jvm/java-1.8.0-openjdk-1.8.0.232.b09-0.el7_7.x86_64/jre/lib/amd64/libawt_xawt.so
+/usr/lib/jvm/java-1.8.0-openjdk-1.8.0.232.b09-0.el7_7.x86_64/jre/lib/amd64/libjawt.so
+/usr/lib/jvm/java-1.8.0-openjdk-1.8.0.232.b09-0.el7_7.x86_64/jre/lib/amd64/libjsoundalsa.so
+/usr/lib/jvm/java-1.8.0-openjdk-1.8.0.232.b09-0.el7_7.x86_64/jre/lib/amd64/libsplashscreen.so
+/usr/share/applications/java-1.8.0-openjdk-1.8.0.232.b09-0.el7_7.x86_64-policytool.desktop
+/usr/share/icons/hicolor/16x16/apps/java-1.8.0-openjdk.png
+/usr/share/icons/hicolor/24x24/apps/java-1.8.0-openjdk.png
+/usr/share/icons/hicolor/32x32/apps/java-1.8.0-openjdk.png
+/usr/share/icons/hicolor/48x48/apps/java-1.8.0-openjdk.png
+
+配置 # /etc/profile 添加JAVA HOME    
+
+export JAVA_HOME=/usr/lib/jvm/java-1.8.0-openjdk-1.8.0.232.b09-0.el7_7.x86_64/ 
+export PATH=$JAVA_HOME/bin:$PATH
+export CLASSPATH=.:$JAVA_HOME/lib/dt.jar:$JAVA_HOME/lib/tools.jar
+
+用命令查看JAVA_HOME是否生效
+[root@k8s-node1 xy]# echo $JAVA_HOME
+/usr/lib/jvm/java-1.8.0-openjdk-1.8.0.232.b09-0.el7_7.x86_64/
+
+3.安装tomcat
+官网下载tomcat 8
+wget http://mirrors.tuna.tsinghua.edu.cn/apache/tomcat/tomcat-8/v8.5.50/bin/apache-tomcat-8.5.50.tar.gz
+
+解压
+tar -zxvf apache-tomcat-8.5.50.tar.gz
+
+进入目录/bin
+cd apache-tomcat-8.5.50/
+启动 tomcat
+
+[root@k8s-node1 apache-tomcat-8.5.50]# cd bin/
+[root@k8s-node1 bin]# ls
+bootstrap.jar       ciphers.sh                    daemon.sh         shutdown.bat     tomcat-native.tar.gz
+catalina.bat        commons-daemon.jar            digest.bat        shutdown.sh      tool-wrapper.bat
+catalina.sh         commons-daemon-native.tar.gz  digest.sh         startup.bat      tool-wrapper.sh
+catalina-tasks.xml  configtest.bat                setclasspath.bat  startup.sh       version.bat
+ciphers.bat         configtest.sh                 setclasspath.sh   tomcat-juli.jar  version.sh
+[root@k8s-node1 bin]# ./startup.sh //启动
+Using CATALINA_BASE:   /data/apache-tomcat-8.5.50
+Using CATALINA_HOME:   /data/apache-tomcat-8.5.50
+Using CATALINA_TMPDIR: /data/apache-tomcat-8.5.50/temp
+Using JRE_HOME:        /usr/lib/jvm/java-1.8.0-openjdk-1.8.0.232.b09-0.el7_7.x86_64/
+Using CLASSPATH :       /data/apache-tomcat-8.5.50/bin/bootstrap.jar:/data/apache-tomcat-8.5.50/bin/tomcat-juli.jar
+Tomcat started. //Tomcat已启动
+5.1看下日志
+more ../logs/catalina.out 
+start Server startup  //日志后面显示内容
+
+看下监听的端口
+[root@k8s-node1 bin]# ss -antup |grep java
+tcp    LISTEN     0      100      :::8080                 :::*                   users:(("java",pid=48242,fd=52))
+tcp    LISTEN     0      1      ::ffff:127.0.0.1:8005                 :::*                   users:(("java",pid=48242,fd=72))
+tcp    LISTEN     0      100      :::8009                 :::*                   users:(("java",pid=48242,fd=57))
+
+如果是windows版本，编辑TOMCAT_HOME/bin/catalina.bat，在开头加入下面几行：
+set CATALINA_OPTS=%CATALINA_OPTS% -Djava.rmi.server.hostname=JMX_HOST
+set CATALINA_OPTS=%CATALINA_OPTS% -Djavax.management.builder.initial=
+set CATALINA_OPTS=%CATALINA_OPTS% -Dcom.sun.management.jmxremote=true
+set CATALINA_OPTS=%CATALINA_OPTS% -Dcom.sun.management.jmxremote.port=JMX_PORT
+
+set CATALINA_OPTS=%CATALINA_OPTS% -Dcom.sun.management.jmxremote.ssl=false
+set CATALINA_OPTS=%CATALINA_OPTS% -Dcom.sun.management.jmxremote.authenticate=false
+
+
+
+
+编辑tomcat上的catalina.sh  加上jmx启动参数   java-gatewai端上12345参数   如果认证加上 ssh参数
+[root@k8s-node1 bin]# vi catalina.sh
+
+CATALINA_OPTS="${CATALINA_OPTS} -Djava.rmi.server.hostname=JMX_HOST"//本地 tomcat上的主机
+CATALINA_OPTS="${CATALINA_OPTS} -Djavax.management.builder.initial="
+CATALINA_OPTS="${CATALINA_OPTS} -Dcom.sun.management.jmxremote=true"
+CATALINA_OPTS="${CATALINA_OPTS} -Dcom.sun.management.jmxremote.port=12345"
+CATALINA_OPTS="${CATALINA_OPTS} -Dcom.sun.management.jmxremote.ssl=false"
+CATALINA_OPTS="${CATALINA_OPTS} -Dcom.sun.management.jmxremote.authenticate=false"
+
+配置完成后关闭tomcat
+ ./shutdown.sh
+在重启tomcat
+./startup.sh
+
+
+--------------------------在前端页面配置主机 添加tomcat 摸版  
+
+
+
